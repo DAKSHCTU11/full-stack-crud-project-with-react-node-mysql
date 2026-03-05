@@ -21,10 +21,17 @@ pipeline {
 
     stage('ECR Login') {
       steps {
-        sh '''
-          aws ecr get-login-password --region $AWS_REGION | \
-            docker login --username AWS --password-stdin $ECR_REGISTRY
-        '''
+        withCredentials([[
+          $class: 'AmazonWebServicesCredentialsBinding',
+          credentialsId: 'aws-creds',
+          accessKeyVariable: 'AWS_ACCESS_KEY_ID',
+          secretKeyVariable: 'AWS_SECRET_ACCESS_KEY'
+        ]]) {
+          sh '''
+            aws ecr get-login-password --region $AWS_REGION | \
+              docker login --username AWS --password-stdin $ECR_REGISTRY
+          '''
+        }
       }
     }
 
@@ -50,12 +57,19 @@ pipeline {
 
     stage('Push Images to ECR') {
       steps {
-        sh '''
-          docker push $ECR_REGISTRY/$BACKEND_REPO:$IMAGE_TAG
-          docker push $ECR_REGISTRY/$BACKEND_REPO:latest
-          docker push $ECR_REGISTRY/$FRONTEND_REPO:$IMAGE_TAG
-          docker push $ECR_REGISTRY/$FRONTEND_REPO:latest
-        '''
+        withCredentials([[
+          $class: 'AmazonWebServicesCredentialsBinding',
+          credentialsId: 'aws-creds',
+          accessKeyVariable: 'AWS_ACCESS_KEY_ID',
+          secretKeyVariable: 'AWS_SECRET_ACCESS_KEY'
+        ]]) {
+          sh '''
+            docker push $ECR_REGISTRY/$BACKEND_REPO:$IMAGE_TAG
+            docker push $ECR_REGISTRY/$BACKEND_REPO:latest
+            docker push $ECR_REGISTRY/$FRONTEND_REPO:$IMAGE_TAG
+            docker push $ECR_REGISTRY/$FRONTEND_REPO:latest
+          '''
+        }
       }
     }
 
